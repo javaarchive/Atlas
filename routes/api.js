@@ -2,6 +2,7 @@ import {Router} from 'express';
 import {sequelize} from '../models/index.js';
 import {Tasks} from "../models/index.js";
 import {Sequelize, DataTypes, Op} from 'sequelize';
+import { config } from '../config.js';
 
 const router = Router();
 
@@ -13,14 +14,20 @@ router.get('/tasks/preview', async (req, res) => {
     res.send({
       ok: true,
       data: (await Tasks.findAll({
-        limit: 10
+        limit: 10,
+        where: {
+          namespace: req.query.namespace || config.defaultNamespace
+        }
       })).get()
     });
 });
 
 router.get('/tasks/preview', async (req, res) => {
   res.send((await Tasks.findAll({
-    limit: 10
+    limit: 10,
+    where: {
+      namespace: req.query.namespace || config.defaultNamespace
+    }
   })).get());
 });
 
@@ -30,7 +37,8 @@ router.get('/tasks/by_caps', async (req, res) => {
     where: {
       flags: {
         [Op.contains]: req.query.caps
-      }
+      },
+      namespace: req.query.namespace || config.defaultNamespace
     }
   })).get());
 });

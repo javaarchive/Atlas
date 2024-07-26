@@ -14,6 +14,7 @@ export const Tasks = sequelize.define('tasks', {
     description: DataTypes.STRING,
     completed: DataTypes.BOOLEAN,
     flags: DataTypes.ARRAY(DataTypes.STRING),
+    namespace: DataTypes.STRING,
 });
 
 export function generateID(url){
