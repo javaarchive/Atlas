@@ -12,7 +12,7 @@ const io = new Server(server);
 let initing = true;
 
 async function initEverything(){
-  await init();
+  await init(process.env.ALTER_DB === '1');
   console.log('Database initialized.');
 }
 

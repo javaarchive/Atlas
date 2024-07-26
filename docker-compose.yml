@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  database:
+    image: postgres
+    restart: on-failure
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - 5432:5432
+  # for prod only
+  app:
+    build: .
+    restart: on-failure
+    ports:
+      - 3000:3000
+    depends_on:
+      - database
