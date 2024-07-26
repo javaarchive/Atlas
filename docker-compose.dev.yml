@@ -12,7 +12,9 @@ services:
       - 5432:5432
   # for prod only
   app:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     restart: on-failure
     ports:
       - 3000:3000
