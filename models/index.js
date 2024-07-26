@@ -17,6 +17,28 @@ export const Tasks = sequelize.define('tasks', {
     namespace: DataTypes.STRING,
 });
 
+export const Artifacts = sequelize.define('artifacts', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true
+    },
+    type: DataTypes.STRING, // likely Content-Type or something less specific
+    path: DataTypes.STRING,
+    completed: DataTypes.BOOLEAN,
+    namespace: DataTypes.STRING,
+    task_id: DataTypes.INTEGER,
+});
+
+export const Clients = sequelize.define('clients', {
+    id: {
+        type: DataTypes.STRING,
+        primaryKey: true
+    },
+    lastHeartbeat: DataTypes.DATE,
+    online: DataTypes.BOOLEAN,
+    caps: DataTypes.ARRAY(DataTypes.STRING),
+});
+
 export function generateID(url){
     return Buffer.from(normalizeUrl(url, {
         stripWWW: true,

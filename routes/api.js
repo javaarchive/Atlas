@@ -31,6 +31,13 @@ router.get('/tasks/preview', async (req, res) => {
   })).get());
 });
 
+router.get('/tasks/preview_all', async (req, res) => {
+  res.send((await Tasks.findAll({
+    limit: 25,
+    where: {}
+  })).get());
+});
+
 router.get('/tasks/by_caps', async (req, res) => {
   res.send((await Tasks.findAll({
     limit: 100,
