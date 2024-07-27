@@ -10,13 +10,15 @@ services:
       POSTGRES_DB: postgres
     ports:
       - 5432:5432
+    volumes:
+      - ./data_dev:/var/lib/postgresql/data
   # for prod only
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    restart: on-failure
-    ports:
-      - 3000:3000
-    depends_on:
-      - database
+  #app:
+  #  build:
+  #    context: .
+  #    dockerfile: Dockerfile.dev
+  #  restart: on-failure
+  #  ports:
+  #    - 3000:3000
+  #  depends_on:
+  #    - database
