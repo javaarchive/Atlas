@@ -70,7 +70,7 @@ router.post("/tasks/acquire", async (req, res) => {
     }
   });
   if(matchingTasks.length === 0){
-    res.send({
+    res.status(404).send({
       ok: false,
       error: "No matching tasks found"
     });
@@ -104,6 +104,8 @@ router.post("/tasks/acquire", async (req, res) => {
 
 });
 
+// TODO: expire tasks that take too long
+
 router.get("/clients/list", async (req, res) => {
   res.send((await Clients.findAll({
     limit: 100,
@@ -129,7 +131,17 @@ router.get("/clients/get", async (req, res) => {
     ]
   })).get());
 });
-// TODO: expire tasks that take too long
 
+router.post("/artifacts/upload", async (req, res) => {
+    if(req.body && req.body.length){
+        // TODO: 
+    }else{
+        res.status(400).send({
+            ok: false,
+            error: "No data provided"
+        });
+        return;
+    }
+});
 
 export default router;

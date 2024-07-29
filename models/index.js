@@ -29,7 +29,10 @@ export const Artifacts = sequelize.define('artifacts', {
         type: DataTypes.INTEGER,
         primaryKey: true
     },
-    type: DataTypes.STRING, // likely Content-Type or something less specific
+    type: {
+        type: DataTypes.STRING, // likely Content-Type or something less specific
+        defaultValue: "application/octet-stream"
+    },
     path: DataTypes.STRING,
     completed: DataTypes.BOOLEAN,
     namespace: DataTypes.STRING,
