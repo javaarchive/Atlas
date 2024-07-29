@@ -31,3 +31,22 @@ services:
     command: "npm start"
     volumes:
       - ./:/home/node/app
+    profiles:
+  dev:
+    # dockerfile unused for now
+    # TODO: use dockerfile because dependencies exist, I have not deployed this to prod yet.
+    # build: .
+    image: node:18.20.4-bookworm-slim
+    user: node
+    working_dir: /home/node/app
+    restart: on-failure
+    ports:
+      - 3000:3000
+    depends_on:
+      - database
+    environment:
+      - NODE_ENV=development
+    command: "npm start"
+    volumes:
+      - ./:/home/node/app:ro # TODO this may cause issues?
+    profiles: ["dev"]
