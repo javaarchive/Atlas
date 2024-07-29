@@ -2,6 +2,7 @@ import {Sequelize, DataTypes} from 'sequelize';
 import crypto from "crypto";
 import normalizeUrl from 'normalize-url';
 import config from '../config.js';
+import { start } from 'repl';
 
 const sequelize = new Sequelize(config.databaseURL);
 
@@ -16,6 +17,11 @@ export const Tasks = sequelize.define('tasks', {
     completed: DataTypes.BOOLEAN,
     flags: DataTypes.ARRAY(DataTypes.STRING),
     namespace: DataTypes.STRING,
+    completerID: DataTypes.STRING,
+    startTime: {
+        type: DataTypes.DATE,
+        allowNull: true
+    },
 });
 
 export const Artifacts = sequelize.define('artifacts', {
@@ -28,6 +34,10 @@ export const Artifacts = sequelize.define('artifacts', {
     completed: DataTypes.BOOLEAN,
     namespace: DataTypes.STRING,
     task_id: DataTypes.INTEGER,
+    name: {
+        type: DataTypes.STRING,
+        allowNull: true
+    }
 });
 
 export const Clients = sequelize.define('clients', {
