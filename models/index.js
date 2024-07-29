@@ -27,7 +27,8 @@ export const Tasks = sequelize.define('tasks', {
 export const Artifacts = sequelize.define('artifacts', {
     id: {
         type: DataTypes.INTEGER,
-        primaryKey: true
+        primaryKey: true,
+        autoIncrement: true
     },
     type: {
         type: DataTypes.STRING, // likely Content-Type or something less specific

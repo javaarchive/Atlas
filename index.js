@@ -22,6 +22,10 @@ async function initEverything(){
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
+app.use(express.raw({
+  limit: "100mb",
+  inflate: true,
+}));
 
 app.get('/', (req, res) => {
   res.send('Hello.');

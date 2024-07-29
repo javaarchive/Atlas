@@ -3,6 +3,10 @@ import {sequelize} from '../models/index.js';
 import {Tasks, Clients, Artifacts} from "../models/index.js";
 import {Sequelize, DataTypes, Op} from 'sequelize';
 import { config } from '../config.js';
+import fs from "fs";
+import path from "path";
+
+import crypto from "crypto";
 
 import AsyncLock from 'async-lock';
 
@@ -133,8 +137,76 @@ router.get("/clients/get", async (req, res) => {
 });
 
 router.post("/artifacts/upload", async (req, res) => {
+  const buffer = req.body;
+  const hash = crypto.createHash('sha256').update(buffer).digest('hex');
+  const bucket = hash.slice(0, 2);
+  const ext = req.get('content-type').split('/')[1];
+  const bucketPath = `${bucket}`;
+  const filename = `${hash}.${ext}`;
+  await fs.promises.mkdir(path.join(config.dataPath,"artifacts",bucketPath), {recursive: true});
+  await fs.promises.writeFile(path.join(config.dataPath,"artifacts",bucketPath, filename), buffer);
+  res.send({
+    ok: true,
+    data: {
+      path: `${bucketPath}/${filename}`,
+      filename: filename,
+      bucket: bucket,
+      ext: ext
+    }
+  });
+});
+
+router.post("/artifacts/bulkcreate", async (req, res) => {
     if(req.body && req.body.length){
         // TODO: 
+        try{
+          let creationObjs = req.body.map(obj => {
+              
+              return {
+                  namespace: req.query.namespace || config.defaultNamespace,
+                  name: obj.name,
+                  description: obj.description,
+                  type: obj.type,
+                  task_id: obj.task_id,
+                  path: obj.path
+              }
+          });
+
+          // check paths
+          for(let obj of creationObjs){
+            if(!obj.path){
+              res.status(400).send({
+                  ok: false,
+                  error: "No path provided"
+              });
+              return;
+            }
+
+            let objPath = path.normalize(path.join(config.dataPath, "artifacts", obj.path));
+            if(objPath.startsWith(path.join(config.dataPath, "artifacts"))){
+              if(!(await fs.promises.stat(objPath)).isFile()){
+                res.status(400).send({
+                    ok: false,
+                    error: "Path is not a uploaded file"
+                });
+                return;
+              }
+            }else{
+              throw new Error("Path is outside of artifacts directory");
+            }
+          }
+
+          let creationResults = await Artifacts.bulkCreate(creationObjs, {});
+          res.send({
+              ok: true,
+              data: creationResults.map(result => result.toJSON())
+          });
+        }catch(ex){
+          res.status(500).send({
+              ok: false,
+              error: ex.message
+          });
+        }
     }else{
         res.status(400).send({
             ok: false,
