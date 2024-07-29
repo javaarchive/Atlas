@@ -151,7 +151,8 @@ router.post("/artifacts/upload", async (req, res) => {
       path: `${bucketPath}/${filename}`,
       filename: filename,
       bucket: bucket,
-      ext: ext
+      ext: ext,
+      hash: hash
     }
   });
 });
@@ -161,7 +162,6 @@ router.post("/artifacts/bulkcreate", async (req, res) => {
         // TODO: 
         try{
           let creationObjs = req.body.map(obj => {
-              
               return {
                   namespace: req.query.namespace || config.defaultNamespace,
                   name: obj.name,

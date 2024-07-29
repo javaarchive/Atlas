@@ -1,3 +1,7 @@
+import {config as configureDotenv} from "dotenv";
+
+configureDotenv();
+
 export const config = {
     port: process.env.PORT || 3000,
     secret: process.env.SECRET || "secret",
@@ -5,5 +9,7 @@ export const config = {
     databaseURL: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/atlas",
     dataPath: process.env.DATA_PATH || "data",
 }
+
+console.log(config);
 
 export default config;

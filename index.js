@@ -2,10 +2,6 @@ import express from 'express';
 import {Server} from "socket.io";
 import http from "http";
 
-import {config as configureDotenv} from "dotenv";
-
-configureDotenv();
-
 import {init} from "./models/index.js";
 import apiRouter from './routes/api.js';
 
