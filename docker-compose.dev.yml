@@ -1,5 +1,6 @@
 version: '3'
 
+# just start the database
 services:
   database:
     image: postgres:16.3
