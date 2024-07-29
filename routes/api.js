@@ -114,6 +114,21 @@ router.get("/clients/list", async (req, res) => {
   })).get());
 });
 
+
+router.get("/clients/get", async (req, res) => {
+  res.send((await Clients.findByPk(req.query.clientID, {
+    include: [
+      {
+        model: Tasks,
+        as: 'tasks',
+        attributes: ['id', 'namespace', 'name', 'description', 'flags', 'startTime', 'completerID', 'completed'],
+        where: {
+          completed: false
+        }
+      }
+    ]
+  })).get());
+});
 // TODO: expire tasks that take too long
 
 
