@@ -1,6 +1,6 @@
 import {Router} from 'express';
 import {sequelize} from '../models/index.js';
-import {Tasks} from "../models/index.js";
+import {Tasks, Clients, Artifacts} from "../models/index.js";
 import {Sequelize, DataTypes, Op} from 'sequelize';
 import { config } from '../config.js';
 
@@ -103,6 +103,18 @@ router.post("/tasks/acquire", async (req, res) => {
   }
 
 });
+
+router.get("/clients/list", async (req, res) => {
+  res.send((await Clients.findAll({
+    limit: 100,
+    offset: parseInt(req.query.offset || "0"),
+    where: {
+      namespace: req.query.namespace || config.defaultNamespace
+    }
+  })).get());
+});
+
+// TODO: expire tasks that take too long
 
 
 export default router;
