@@ -1,8 +1,9 @@
 import {Sequelize, DataTypes} from 'sequelize';
 import crypto from "crypto";
 import normalizeUrl from 'normalize-url';
+import config from '../config.js';
 
-const sequelize = new Sequelize(process.env.DATABASE_URL || 'sqlite://db.sqlite');
+const sequelize = new Sequelize(config.databaseURL);
 
 
 export const Tasks = sequelize.define('tasks', {
