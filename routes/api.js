@@ -151,6 +151,15 @@ router.get("/clients/get", async (req, res) => {
   })).get());
 });
 
+router.post("/clients/sync", async (req, res) => {
+  await Clients.upsert({
+    id: req.body.id,
+    online: true,
+    lastHeartbeat: new Date(),
+    caos: req.body.caos,
+  });
+});
+
 router.post("/artifacts/upload", async (req, res) => {
   const buffer = req.body;
   const hash = crypto.createHash('sha256').update(buffer).digest('hex');
