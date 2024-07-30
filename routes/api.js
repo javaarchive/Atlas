@@ -22,6 +22,21 @@ router.get('/', (req, res) => {
     res.send('Hello from API!');
 });
 
+router.post("/tasks/create", async (req, res) => {
+  const task = await Tasks.create({
+    namespace: req.body.namespace || config.defaultNamespace,
+    flags: req.body.flags,
+    startTime: null,
+    description: req.body.description || "",
+    completerID: null,
+    completed: false
+  });
+  res.send({
+    ok: true,
+    data: task.toJSON() // this let's  client know the task id
+  });
+});
+
 router.get('/tasks/preview', async (req, res) => {
     res.send({
       ok: true,
