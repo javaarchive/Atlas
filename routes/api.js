@@ -5,6 +5,7 @@ import {Sequelize, DataTypes, Op} from 'sequelize';
 import { config } from '../config.js';
 import fs from "fs";
 import path from "path";
+import { EventEmitter } from 'events';
 
 import crypto from "crypto";
 
@@ -13,6 +14,8 @@ import AsyncLock from 'async-lock';
 const taskLock = new AsyncLock();
 
 const router = Router();
+
+export const emitter = new EventEmitter();
 
 function getKey(namespace, id){
   return `${namespace}:${id}`;
@@ -221,6 +224,15 @@ router.post("/artifacts/bulkcreate", async (req, res) => {
           }
 
           let creationResults = await Artifacts.bulkCreate(creationObjs, {});
+          creationResults.forEach(result => {
+            emitter.emit("global", {
+              event: {
+                type: "task_created",
+                id: result.id,
+                flags: result.flags,
+              }
+            });
+          });
           res.send({
               ok: true,
               data: creationResults.map(result => result.toJSON())
@@ -239,5 +251,35 @@ router.post("/artifacts/bulkcreate", async (req, res) => {
         return;
     }
 });
+
+// https://www.digitalocean.com/community/tutorials/nodejs-server-sent-events-build-realtime-app
+router.get("/events/:id", (req, res) => {
+  let clientID = req.params.id;
+  // check valid clientID
+
+  // start stream
+  const headers = {
+    'Content-Type': 'text/event-stream',
+    'Connection': 'keep-alive',
+    'Cache-Control': 'no-cache'
+  };
+  res.writeHead(200, headers);
+
+  function handleEvent(event){
+    res.write(JSON.stringify({
+      event: event.event,
+      time: Date.now(),
+    }) + "\n")
+  }
+
+  emitter.on("global", handleEvent);
+  emitter.on(`event:${clientID}`, handleEvent);
+
+  req.on("close", () => {
+    console.log("Client disconnected");
+    emitter.removeListener(`event:${clientID}`, handleEvent);
+    emitter.removeListener("global", handleEvent);
+  });
+})
 
 export default router;
