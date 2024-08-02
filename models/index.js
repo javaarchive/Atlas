@@ -52,6 +52,7 @@ export const Clients = sequelize.define('clients', {
     lastHeartbeat: DataTypes.DATE,
     online: DataTypes.BOOLEAN,
     caps: DataTypes.ARRAY(DataTypes.STRING),
+    lastTaskID: DataTypes.INTEGER,
 });
 
 export function generateID(url){

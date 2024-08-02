@@ -11,14 +11,28 @@ import crypto from "crypto";
 
 import AsyncLock from 'async-lock';
 
-const taskLock = new AsyncLock();
+const lock = new AsyncLock();
 
 const router = Router();
 
 export const emitter = new EventEmitter();
 
-function getKey(namespace, id){
-  return `${namespace}:${id}`;
+function getTaskKey(namespace, id){
+  return `task:${namespace}:${id}`;
+}
+
+function getClientKey(namespace, id){
+  return `client:${namespace}:${id}`;
+}
+
+function suggestTask(clientID, task){
+  emitter.emit(`event:${clientID}`, {
+    event: {
+      type: "task_suggested",
+      id: task.id,
+      flags: task.flags
+    }
+  });
 }
 
 router.get('/', (req, res) => {
@@ -34,6 +48,10 @@ router.post("/tasks/create", async (req, res) => {
     completerID: null,
     completed: false
   });
+  // broadcast existsence
+
+  // hmmm
+
   res.send({
     ok: true,
     data: task.toJSON() // this let's  client know the task id
@@ -100,8 +118,8 @@ router.post("/tasks/acquire", async (req, res) => {
   }
 
   for(let task of matchingTasks){
-    const key = getKey(task.namespace, task.id);
-    let result = taskLock.acquire(key, async () => {
+    const key = getTaskKey(task.namespace, task.id);
+    let result = lock.acquire(key, async () => {
       // refetch to make sure it's still avali
       const task = await Tasks.findByPk(task.id);
       if(task.completerID === req.body.clientID || !task.completerID){
@@ -109,6 +127,13 @@ router.post("/tasks/acquire", async (req, res) => {
         task.startTime = new Date();
         task.completed = false;
         await task.save();
+        // mark client as busy
+        await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {
+          const client = await Clients.findByPk(task.completerID);
+          client.lastTaskID = task.id;
+          await client.save();
+        });
+        
         return task;
       }else{
         // taken
@@ -123,7 +148,6 @@ router.post("/tasks/acquire", async (req, res) => {
       return result;
     }
   }
-
 });
 
 // TODO: expire tasks that take too long
@@ -256,6 +280,7 @@ router.post("/artifacts/bulkcreate", async (req, res) => {
 router.get("/events/:id", (req, res) => {
   let clientID = req.params.id;
   // check valid clientID
+  // TODO: 
 
   // start stream
   const headers = {
