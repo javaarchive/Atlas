@@ -10,6 +10,8 @@ import { EventEmitter } from 'events';
 import crypto from "crypto";
 
 import AsyncLock from 'async-lock';
+import { emit } from 'process';
+import { error } from 'console';
 
 const lock = new AsyncLock();
 
@@ -25,14 +27,30 @@ function getClientKey(namespace, id){
   return `client:${namespace}:${id}`;
 }
 
-function suggestTask(clientID, task){
-  emitter.emit(`event:${clientID}`, {
-    event: {
-      type: "task_suggested",
-      id: task.id,
-      flags: task.flags
+async function suggestTask(task){
+  const clients = await Clients.findAll({
+    where: {
+      namespace: task.namespace
     }
   });
+
+  for(let client of clients){
+    const clientID = client.id;
+
+    // check compat
+    // client needs every flag requested by task
+    if(task.flags.some(flag => !client.caps.includes(flag))){
+      continue;
+    }
+
+    emitter.emit(`event:${clientID}`, {
+      event: {
+        type: "task_suggested",
+        id: task.id,
+        flags: task.flags
+      }
+    });
+  }
 }
 
 router.get('/', (req, res) => {
@@ -49,6 +67,7 @@ router.post("/tasks/create", async (req, res) => {
     completed: false
   });
   // broadcast existsence
+  suggestTask(task);
 
   // hmmm
 
@@ -86,6 +105,7 @@ router.get('/tasks/preview_all', async (req, res) => {
   })).get());
 });
 
+// use this when you don't have anything suggested
 router.get('/tasks/by_caps', async (req, res) => {
   res.send((await Tasks.findAll({
     limit: 100,
@@ -128,10 +148,27 @@ router.post("/tasks/acquire", async (req, res) => {
         task.completed = false;
         await task.save();
         // mark client as busy
+        // we emit this change so other clients TRY to not acquire
+        emitter.emit("global", {
+          event: {
+            type: "task_acquiring",
+            id: task.id,
+            flags: task.flags,
+            clientID: task.completerID
+          }
+        });
         await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {
           const client = await Clients.findByPk(task.completerID);
           client.lastTaskID = task.id;
           await client.save();
+        });
+        emitter.emit("global", {
+          event: {
+            type: "task_acquired",
+            id: task.id,
+            flags: task.flags,
+            clientID: task.completerID
+          }
         });
         
         return task;
@@ -146,7 +183,41 @@ router.post("/tasks/acquire", async (req, res) => {
         data: result.toJSON()
       })
       return result;
+    }else{
+      res.send({
+        ok: false,
+        error: "Task is already acquired.",
+        code: "acquired"
+      })
     }
+  }
+});
+
+router.post("/tasks/complete", async (req, res) => {
+  const task = await Tasks.findByPk(req.body.id);
+  if(task.completerID === req.body.clientID){
+    task.completed = true;
+    await task.save();
+    // mark client as busy
+    // we emit this change so other clients TRY to not acquire
+    emitter.emit("global", {
+      event: {
+        type: "task_completed",
+        id: task.id,
+        flags: task.flags,
+        clientID: task.completerID
+      }
+    });
+    res.send({
+      ok: true,
+      data: task.toJSON()
+    })
+  }else{
+    res.send({
+      ok: false,
+      error: "Task is not acquired by client.",
+      code: "not_acquired"
+    })
   }
 });
 

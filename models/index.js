@@ -22,6 +22,10 @@ export const Tasks = sequelize.define('tasks', {
         type: DataTypes.DATE,
         allowNull: true
     },
+    refererID: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    }
 });
 
 export const Artifacts = sequelize.define('artifacts', {
