@@ -27,6 +27,10 @@ function getClientKey(namespace, id){
   return `client:${namespace}:${id}`;
 }
 
+function getCapsKey(caps = []){
+  return caps.sort().join(",");
+}
+
 async function suggestTask(task){
   const clients = await Clients.findAll({
     where: {
@@ -47,7 +51,8 @@ async function suggestTask(task){
       event: {
         type: "task_suggested",
         id: task.id,
-        flags: task.flags
+        variant: task.variant,
+        url: task.url
       }
     });
   }
@@ -57,14 +62,75 @@ router.get('/', (req, res) => {
     res.send('Hello from API!');
 });
 
+router.post("/tasks/pull", async (req, res) => {
+    let clientID = req.body.clientID;
+    let clients = clientID ? ([await Clients.findOne({
+      where: {
+        id: clientID
+      }
+    })]) : await Clients.findAll({
+      where: {
+        namespace: req.body.namespace || config.defaultNamespace
+      }
+    });
+
+    let cache = {};
+    let freq = {};
+    let clientGroups = {};
+
+    for(let client of clients){
+      const clientID = client.id;
+      if(client.lastTaskID){
+        continue;
+      }
+      let cacheKey = `${client.namespace}:${client.variant}`;
+      if(freq[cacheKey]){
+        freq[cacheKey]++;
+        clientGroups[cacheKey].push(client);
+      }else{
+        freq[cacheKey] = 1;
+        clientGroups[cacheKey] = [];
+      }
+    }
+    // fill keys
+    for(let key in freq){
+      let [namespace, variant] = key.split(":");
+      cache[key] = await Tasks.findAll({
+        where: {
+          namespace: namespace,
+          variant: variant,
+          completerID: {
+            [Op.eq]: null
+          }
+        },
+        limit: freq[key]
+      });
+      for(let i = 0; i < cache[key].length; i++) {
+        const task = cache[key][i];
+        const client = clientGroups[key][i];
+        // suggest task for that client
+        emitter.emit(`event:${client.id}`, {
+          event: {
+            type: "task_suggested",
+            id: task.id,
+            variant: task.variant,
+            url: task.url
+          }
+        });
+      }
+    }
+
+});
+ 
 router.post("/tasks/create", async (req, res) => {
   const task = await Tasks.create({
     namespace: req.body.namespace || config.defaultNamespace,
-    flags: req.body.flags,
+    variant: req.body.variant,
     startTime: null,
     description: req.body.description || "",
     completerID: null,
-    completed: false
+    completed: false,
+    refererID: req.body.refererID || null
   });
   // broadcast existsence
   suggestTask(task);
@@ -110,9 +176,7 @@ router.get('/tasks/by_caps', async (req, res) => {
   res.send((await Tasks.findAll({
     limit: 100,
     where: {
-      flags: {
-        [Op.contains]: req.query.caps
-      },
+      variant: req.query.variant,
       namespace: req.query.namespace || config.defaultNamespace
     }
   })).get());
@@ -123,9 +187,7 @@ router.post("/tasks/acquire", async (req, res) => {
   const matchingTasks = await Tasks.findAll({
     limit: 100,
     where: {
-      flags: {
-        [Op.contains]: req.body.caps
-      },
+      variant: req.body.variant,
       namespace: req.body.namespace || config.defaultNamespace
     }
   });
@@ -153,7 +215,7 @@ router.post("/tasks/acquire", async (req, res) => {
           event: {
             type: "task_acquiring",
             id: task.id,
-            flags: task.flags,
+            variant: task.variant,
             clientID: task.completerID
           }
         });
@@ -166,7 +228,7 @@ router.post("/tasks/acquire", async (req, res) => {
           event: {
             type: "task_acquired",
             id: task.id,
-            flags: task.flags,
+            variant: task.variant,
             clientID: task.completerID
           }
         });
@@ -254,7 +316,8 @@ router.post("/clients/sync", async (req, res) => {
     id: req.body.id,
     online: true,
     lastHeartbeat: new Date(),
-    caos: req.body.caos,
+    caps: req.body.caps,
+    namespace: req.body.namespace || config.defaultNamespace
   });
 });
 

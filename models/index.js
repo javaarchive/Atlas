@@ -15,7 +15,7 @@ export const Tasks = sequelize.define('tasks', {
     url: DataTypes.STRING,
     description: DataTypes.STRING,
     completed: DataTypes.BOOLEAN,
-    flags: DataTypes.ARRAY(DataTypes.STRING),
+    variant: DataTypes.STRING,
     namespace: DataTypes.STRING,
     completerID: DataTypes.STRING,
     startTime: {
@@ -55,8 +55,12 @@ export const Clients = sequelize.define('clients', {
     },
     lastHeartbeat: DataTypes.DATE,
     online: DataTypes.BOOLEAN,
-    caps: DataTypes.ARRAY(DataTypes.STRING),
-    lastTaskID: DataTypes.INTEGER,
+    variant: DataTypes.STRING,
+    lastTaskID: {
+        type: DataTypes.INTEGER,
+        allowNull: true
+    },
+    namespace : DataTypes.STRING
 });
 
 export function generateID(url){
