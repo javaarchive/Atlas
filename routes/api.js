@@ -149,6 +149,14 @@ router.post("/tasks/pull", async (req, res) => {
         });
       }
     }
+
+    res.json({
+      ok: true,
+      data: {
+        status: "ok",
+        clientsCount: clients.length
+      }
+    })
 });
 
 router.post("/tasks/create", async (req, res) => {
@@ -494,9 +502,6 @@ router.get("/events/:id", async (req, res) => {
     });
     return;
   }
-  client.lastHeartbeat = new Date();
-  client.online = true;
-  await client.save();
 
   // start stream
   const headers = {
@@ -505,6 +510,12 @@ router.get("/events/:id", async (req, res) => {
     'Cache-Control': 'no-cache'
   };
   res.writeHead(200, headers);
+
+  client.lastHeartbeat = new Date();
+  client.online = true;
+  await client.save();
+
+  
 
   function handleEvent(event){
     res.write("data: " + JSON.stringify({

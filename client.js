@@ -92,7 +92,11 @@ export class Client {
         const message = JSON.parse(event.data);
         console.log("Message", message);
         if(message.event.type === "task_suggested"){
-            this.tryTask(message.event.task);
+            this.tryTask(message.event.task).then(success => {
+                if(success) {
+                    this.requestTask();
+                }
+            })
         }else if(message.event.type === "heartbeat"){
             this.tick();
         }
@@ -163,9 +167,12 @@ export class Client {
         return (await resp.json());
     }
 
-    tryTask(task){
+    async tryTask(task){
         if(this.running < this.concurrency){
-            this.completeTaskWrapper(task);
+            await this.completeTaskWrapper(task);
+            return true;
+        }else{
+            return false;
         }
     }
 
