@@ -29,10 +29,6 @@ function getClientKey(namespace, id){
   return `client:${namespace}:${id}`;
 }
 
-function getCapsKey(caps = []){
-  return caps.sort().join(",");
-}
-
 async function suggestTask(task){
   const clients = await Clients.findAll({
     where: {
@@ -43,9 +39,8 @@ async function suggestTask(task){
   for(let client of clients){
     const clientID = client.id;
 
-    // check compat
-    // client needs every flag requested by task
-    if(task.flags.some(flag => !client.caps.includes(flag))){
+    // check compat with variant
+    if(task.variant !== client.variant){
       continue;
     }
 
@@ -240,7 +235,7 @@ router.get('/tasks/preview_all', async (req, res) => {
 });
 
 // use this when you don't have anything suggested
-router.get('/tasks/by_caps', async (req, res) => {
+router.get('/tasks/by_variant', async (req, res) => {
   res.send((await Tasks.findAll({
     limit: 100,
     where: {
@@ -382,12 +377,17 @@ router.get("/clients/get", async (req, res) => {
 });
 
 router.post("/clients/sync", async (req, res) => {
-  await Clients.upsert({
+  const [client, updated] = await Clients.upsert({
     id: req.body.id,
     online: true,
     lastHeartbeat: new Date(),
-    caps: req.body.caps,
+    variant: req.body.variant,
     namespace: req.body.namespace || config.defaultNamespace
+  });
+  res.json({
+    ok: true,
+    data: client.toJSON(),
+    updated: updated
   });
 });
 

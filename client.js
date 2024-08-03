@@ -48,7 +48,30 @@ export class Client {
         this.variant = variant;
     }
 
-    connect(){
+    async sync(){
+        let resp = await fetch(`${this.baseURL}/api/clients/sync`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant,
+                online: true,
+                // extras we like to report
+                concurrency: this.concurrency,
+                running: this.running
+            })
+        });
+        await this.checkResp(resp);
+    }
+
+    async connect(){
+        await this.sync();
+        console.log("Initial sync complete.");
         this.source = new EventSource(`${this.baseURL}/api/events/${this.clientID}`);
         this.source.addEventListener("message", this.onMessageBound);
         this.source.addEventListener("error", console.warn);
