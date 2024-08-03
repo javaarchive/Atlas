@@ -8,8 +8,7 @@ export const config = {
     defaultNamespace: process.env.DEFAULT_NAMESPACE || "default",
     databaseURL: process.env.DATABASE_URL || "postgres://postgres:postgres@localhost:5432/atlas",
     dataPath: process.env.DATA_PATH || "data",
+    morganMode: process.env.MORGAN_MODE || "combined",
 }
-
-console.log(config);
 
 export default config;

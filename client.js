@@ -1,7 +1,5 @@
 import fetch from "node-fetch";
 
-import {config} from "./config.js";
-
 import EventSource from "eventsource"
 
 import http from "http";
@@ -53,6 +51,7 @@ export class Client {
     connect(){
         this.source = new EventSource(`${this.baseURL}/api/events/${this.clientID}`);
         this.source.addEventListener("message", this.onMessageBound);
+        this.source.addEventListener("error", console.warn);
     }
 
     disconnect(){
@@ -68,6 +67,7 @@ export class Client {
     onMessage(event){
         // hopefully a string
         const message = JSON.parse(event.data);
+        console.log("Message", message);
         if(message.event.type === "task_suggested"){
             this.tryTask(message.event.task);
         }else if(message.event.type === "heartbeat"){

@@ -78,6 +78,15 @@ router.post("/tasks/pull", async (req, res) => {
       }
     });
 
+    if(clientID && !clients[0]){
+      clients = [];
+      res.status(404).send({
+        ok: false,
+        error: "Client not found, are you connected?",
+        code: "client_not_found"
+      });
+    }
+
     if(clientID && req.body.repeat){
       let repeatTimes = parseInt(req.body.repeat);
       if(repeatTimes < 1){
@@ -145,9 +154,8 @@ router.post("/tasks/pull", async (req, res) => {
         });
       }
     }
-
 });
- 
+
 router.post("/tasks/create", async (req, res) => {
   const task = await lock.acquire(getTaskCreateKey(req.body.namespace, req.body.key), async () => {
     let existingTask = await Tasks.findOne({
@@ -473,10 +481,22 @@ router.post("/artifacts/bulkcreate", async (req, res) => {
 });
 
 // https://www.digitalocean.com/community/tutorials/nodejs-server-sent-events-build-realtime-app
-router.get("/events/:id", (req, res) => {
+router.get("/events/:id", async (req, res) => {
   let clientID = req.params.id;
   // check valid clientID
   // TODO: 
+  let client = await Clients.findByPk(clientID);
+  if(!client){
+    res.status(404).send({
+      ok: false,
+      error: "Client not found, are you connected?",
+      code: "client_not_found"
+    });
+    return;
+  }
+  client.lastHeartbeat = new Date();
+  client.online = true;
+  await client.save();
 
   // start stream
   const headers = {
@@ -487,11 +507,25 @@ router.get("/events/:id", (req, res) => {
   res.writeHead(200, headers);
 
   function handleEvent(event){
-    res.write(JSON.stringify({
+    res.write("data: " + JSON.stringify({
       event: event.event,
       time: Date.now(),
-    }) + "\n")
+    }) + "\n\n")
   }
+
+  handleEvent({
+    event: {
+      type: "hello",
+      time: Date.now()
+    }
+  });
+
+  handleEvent({
+    event: {
+      type: "heartbeat",
+      time: Date.now()
+    }
+  });
 
   emitter.on("global", handleEvent);
   emitter.on(`event:${clientID}`, handleEvent);

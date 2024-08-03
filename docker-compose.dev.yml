@@ -1,5 +1,3 @@
-version: '3'
-
 # just start the database
 services:
   database:

@@ -1,9 +1,12 @@
 import express from 'express';
 import {Server} from "socket.io";
 import http from "http";
+import {config} from "./config.js";
 
 import {init} from "./models/index.js";
 import apiRouter from './routes/api.js';
+
+import morgan from "morgan";
 
 const app = express();
 const server = http.createServer(app);
@@ -15,6 +18,8 @@ async function initEverything(){
   await init(process.env.ALTER_DB === '1');
   console.log('Database initialized.');
 }
+
+app.use(morgan(config.morganMode));
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
@@ -29,7 +34,7 @@ app.get('/', (req, res) => {
 
 app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*'); // TODO; use cors module
-    if(initing){
+    if(initing) {
       res.status(503).json({message: 'Server is initializing.', error: true});
     }
     next();
