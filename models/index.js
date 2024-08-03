@@ -12,7 +12,8 @@ export const Tasks = sequelize.define('tasks', {
         type: DataTypes.INTEGER,
         primaryKey: true
     },
-    url: DataTypes.STRING,
+    key: DataTypes.STRING, // should be unique
+    data: DataTypes.JSON,
     description: DataTypes.STRING,
     completed: DataTypes.BOOLEAN,
     variant: DataTypes.STRING,
@@ -56,10 +57,6 @@ export const Clients = sequelize.define('clients', {
     lastHeartbeat: DataTypes.DATE,
     online: DataTypes.BOOLEAN,
     variant: DataTypes.STRING,
-    lastTaskID: {
-        type: DataTypes.INTEGER,
-        allowNull: true
-    },
     namespace : DataTypes.STRING
 });
 

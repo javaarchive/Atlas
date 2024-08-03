@@ -2,6 +2,8 @@ import {fetch} from "node-fetch";
 
 import {config} from "./config.js";
 
+import EventSource from "eventsource"
+
 import http from "http";
 import https from "https";
 
@@ -42,7 +44,40 @@ export class Client {
         this.baseURL = url;
         this.namespace = namespace;
         this.clientID = clientID;
+        this.onMessageBound = this.onMessage.bind(this);
     }
 
+    connect(){
+        this.source = new EventSource(`${this.baseURL}/api/events/${this.clientID}`);
+        this.source.addEventListener("message", this.onMessageBound);
+    }
+
+    disconnect(){
+        this.source.removeEventListener("message", this.onMessageBound);
+        this.source.close();
+    }
+
+    /**
+     *
+     * @param {MessageEvent} event
+     * @memberof Client
+     */
+    onMessage(event){
+        // hopefully a string
+        const message = JSON.parse(event.data);
+        
+    }
+
+    completeTaskWrapper(task){
+        
+    }
     
+
+    completeTask(task){
+        // not implemented
+    }
+
+    idle(){
+
+    }
 }

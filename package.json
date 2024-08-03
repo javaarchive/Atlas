@@ -13,6 +13,7 @@
   "dependencies": {
     "async-lock": "^1.4.1",
     "dotenv": "^16.4.5",
+    "eventsource": "^2.0.2",
     "express": "^4.19.2",
     "node-fetch": "^3.3.2",
     "normalize-url": "^8.0.1",

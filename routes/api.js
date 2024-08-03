@@ -10,8 +10,6 @@ import { EventEmitter } from 'events';
 import crypto from "crypto";
 
 import AsyncLock from 'async-lock';
-import { emit } from 'process';
-import { error } from 'console';
 
 const lock = new AsyncLock();
 
@@ -21,6 +19,10 @@ export const emitter = new EventEmitter();
 
 function getTaskKey(namespace, id){
   return `task:${namespace}:${id}`;
+}
+
+function getTaskCreateKey(namespace, key){
+  return `task:create:${namespace}:${key}`;
 }
 
 function getClientKey(namespace, id){
@@ -52,7 +54,8 @@ async function suggestTask(task){
         type: "task_suggested",
         id: task.id,
         variant: task.variant,
-        url: task.url
+        key: task.key,
+        data: task.data
       }
     });
   }
@@ -80,7 +83,14 @@ router.post("/tasks/pull", async (req, res) => {
 
     for(let client of clients){
       const clientID = client.id;
-      if(client.lastTaskID){
+      if(await Tasks.findOne({
+        // if they have at least one task, we don't suggest
+        // if a client wants to process multiple tasks, they just ask for them via http api
+        where: {
+          completerID: clientID,
+          namespace: client.namespace
+        }
+      })){
         continue;
       }
       let cacheKey = `${client.namespace}:${client.variant}`;
@@ -114,7 +124,8 @@ router.post("/tasks/pull", async (req, res) => {
             type: "task_suggested",
             id: task.id,
             variant: task.variant,
-            url: task.url
+            key: task.key,
+            data: task.data
           }
         });
       }
@@ -123,15 +134,37 @@ router.post("/tasks/pull", async (req, res) => {
 });
  
 router.post("/tasks/create", async (req, res) => {
-  const task = await Tasks.create({
-    namespace: req.body.namespace || config.defaultNamespace,
-    variant: req.body.variant,
-    startTime: null,
-    description: req.body.description || "",
-    completerID: null,
-    completed: false,
-    refererID: req.body.refererID || null
+  const task = await lock.acquire(getTaskCreateKey(req.body.namespace, req.body.key), async () => {
+    let existingTask = await Tasks.findOne({
+      where: {
+        key: req.body.key,
+        namespace: req.body.namespace || config.defaultNamespace
+      }
+    });
+    if(existingTask){
+      return null;
+    }
+    const task = await Tasks.create({
+      namespace: req.body.namespace || config.defaultNamespace,
+      variant: req.body.variant,
+      startTime: null,
+      description: req.body.description || "",
+      completerID: null,
+      completed: false,
+      refererID: req.body.refererID || null,
+      key: req.body.key,
+      data: req.body.data
+    });
+    return task;
   });
+  if(!task){
+    res.status(409).send({
+      ok: false,
+      error: "Task already exists",
+      code: "key_conflict"
+    });
+    return;
+  }
   // broadcast existsence
   suggestTask(task);
 
@@ -221,7 +254,6 @@ router.post("/tasks/acquire", async (req, res) => {
         });
         await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {
           const client = await Clients.findByPk(task.completerID);
-          client.lastTaskID = task.id;
           await client.save();
         });
         emitter.emit("global", {
