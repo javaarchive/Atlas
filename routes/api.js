@@ -55,7 +55,8 @@ async function suggestTask(task){
         id: task.id,
         variant: task.variant,
         key: task.key,
-        data: task.data
+        data: task.data,
+        task: task.toJSON()
       }
     });
   }
@@ -76,6 +77,19 @@ router.post("/tasks/pull", async (req, res) => {
         namespace: req.body.namespace || config.defaultNamespace
       }
     });
+
+    if(clientID && req.body.repeat){
+      let repeatTimes = parseInt(req.body.repeat);
+      if(repeatTimes < 1){
+        repeatTimes = 1;
+      }
+      let newClients = [];
+      for(let i = 0; i < repeatTimes; i++){
+        newClients.push(...clients  );
+      }
+      clients.length = 0;
+      clients.push(...newClients);
+    }
 
     let cache = {};
     let freq = {};
@@ -125,7 +139,8 @@ router.post("/tasks/pull", async (req, res) => {
             id: task.id,
             variant: task.variant,
             key: task.key,
-            data: task.data
+            data: task.data,
+            task: task.toJSON()
           }
         });
       }
@@ -174,6 +189,18 @@ router.post("/tasks/create", async (req, res) => {
     ok: true,
     data: task.toJSON() // this let's  client know the task id
   });
+});
+
+router.get('/tasks/get/:id', async (req, res) => {
+  res.send((await Tasks.findByPk(req.params.id)).toJSON());
+});
+
+router.get('/tasks/by_client/:clientID', async (req, res) => {
+  res.send((await Tasks.findAll({
+    where: {
+      completerID: req.params.clientID
+    }
+  })).get()); // does toJSON() work the same?
 });
 
 router.get('/tasks/preview', async (req, res) => {
@@ -249,7 +276,8 @@ router.post("/tasks/acquire", async (req, res) => {
             type: "task_acquiring",
             id: task.id,
             variant: task.variant,
-            clientID: task.completerID
+            clientID: task.completerID,
+            task: task.toJSON()
           }
         });
         await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {
@@ -261,7 +289,8 @@ router.post("/tasks/acquire", async (req, res) => {
             type: "task_acquired",
             id: task.id,
             variant: task.variant,
-            clientID: task.completerID
+            clientID: task.completerID,
+            task: task.toJSON()
           }
         });
         
@@ -276,15 +305,16 @@ router.post("/tasks/acquire", async (req, res) => {
         ok: true,
         data: result.toJSON()
       })
-      return result;
+      return;
     }else{
-      res.send({
-        ok: false,
-        error: "Task is already acquired.",
-        code: "acquired"
-      })
+      
     }
   }
+  res.send({
+    ok: false,
+    error: "Tasks are already acquired. Busy server?",
+    code: "acquired"
+  })
 });
 
 router.post("/tasks/complete", async (req, res) => {
@@ -472,5 +502,14 @@ router.get("/events/:id", (req, res) => {
     emitter.removeListener("global", handleEvent);
   });
 })
+
+export let heartbeater = setInterval(() => {
+  emitter.emit("global", {
+    event: {
+      type: "heartbeat",
+      time: Date.now()
+    }
+  });
+}, 1000 * 10);
 
 export default router;

@@ -1,4 +1,4 @@
-import {fetch} from "node-fetch";
+import fetch from "node-fetch";
 
 import {config} from "./config.js";
 
@@ -40,11 +40,14 @@ export class Client {
      */
     baseURL;
 
-    constructor(url, clientID, namespace = "default"){
+    constructor(url, clientID, namespace = "default", variant = "default", concurrency = 1){
         this.baseURL = url;
         this.namespace = namespace;
         this.clientID = clientID;
         this.onMessageBound = this.onMessage.bind(this);
+        this.concurrency = concurrency;
+        this.running = 0;
+        this.variant = variant;
     }
 
     connect(){
@@ -65,19 +68,109 @@ export class Client {
     onMessage(event){
         // hopefully a string
         const message = JSON.parse(event.data);
-        
+        if(message.event.type === "task_suggested"){
+            this.tryTask(message.event.task);
+        }else if(message.event.type === "heartbeat"){
+            this.tick();
+        }
     }
 
-    completeTaskWrapper(task){
-        
+    async getNewTask(){
+        let resp = await fetch(`${this.baseURL}/api/tasks/acquire`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                clientID: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant
+            })
+        });
+        await this.checkResp(resp);
+        return (await resp.json());
+    }
+
+    // use this because it sends it through our event stream
+    async requestTask(){
+        let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                clientID: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant,
+                repeat: this.concurrency - this.running
+            })
+        });
+        await this.checkResp(resp);
+        return (await resp.json());
+    }
+
+    tick(){
+        if(this.running < this.concurrency){
+            this.requestTask();
+        } else if(this.running == 0){
+            this.idle();
+        }
+    }
+
+    async checkResp(resp){
+        if(!resp.ok){
+            throw new Error(resp.statusText + " code: " + resp.status + " " + (await resp.text()));
+        }
+    }
+
+    async getJob(id){
+        let resp = await fetch(`${this.baseURL}/api/tasks/get/${id}`, {
+            ...defaultFetchOptions,
+            method: "GET",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            }
+        });
+        await this.checkResp(resp);
+        return (await resp.json());
+    }
+
+    tryTask(task){
+        if(this.running < this.concurrency){
+            this.completeTaskWrapper(task);
+        }
+    }
+
+    async completeTaskWrapper(task){
+        this.running ++;
+        await this.completeTask(task);
+        this.running --;
     }
     
 
-    completeTask(task){
+    async completeTask(task){
         // not implemented
     }
 
-    idle(){
-
+    async idle(){
+        let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                clientID: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant,
+                repeat: this.concurrency - this.running
+            })
+        });
     }
 }
