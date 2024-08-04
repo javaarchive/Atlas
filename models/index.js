@@ -60,6 +60,24 @@ export const Clients = sequelize.define('clients', {
     namespace : DataTypes.STRING
 });
 
+export const Policy = sequelize.define('policy', {
+    id: {
+        // sha256 of namespace + hostname
+        type: DataTypes.STRING,
+        primaryKey: true
+    },
+    namespace: DataTypes.STRING,
+    hostname: DataTypes.STRING,
+    rules: {
+        type: DataTypes.JSON,
+        defaultValue: {}
+    },
+    robots: {
+        type: DataTypes.BLOB,
+        allowNull: true
+    }
+});
+
 export function generateID(url){
     return Buffer.from(normalizeUrl(url, {
         stripWWW: true,
