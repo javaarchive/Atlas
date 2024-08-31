@@ -130,6 +130,57 @@ export class Client {
         return (await resp.json());
     }
 
+    async uploadNewTask(task){
+        let resp = await fetch(`${this.baseURL}/api/tasks/acquire`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify(task)
+        });
+        await this.checkResp(resp);
+        return (await resp.json());
+    }
+
+    async requestRobots(host){
+        return (await this.uploadNewTask({
+            key: host,
+            data: {
+                host: host
+            },
+            variant: "robots",
+            namespace: this.namespace,
+        }));
+    }
+
+    async checkRobots(url, userAgent){
+        let urlObj = new URL(url);
+        let host = urlObj.host;
+        let resp = await fetch(`${this.baseURL}/api/robots/check/${host}?url=${encodeURIComponent(url)}`, {
+            ...defaultFetchOptions,
+            method: "GET",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "User-Agent": userAgent,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                clientID: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant,
+                url: url
+            })
+        });
+        if(resp.status == 200){
+            await this.checkResp(resp);
+            return (await resp.json())["data"]["allowed"];
+        }else if(resp.status == 404){
+            return null;
+        }
+    }
+
     // use this because it sends it through our event stream
     async requestTask(){
         let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {

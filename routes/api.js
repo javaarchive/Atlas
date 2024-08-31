@@ -12,6 +12,8 @@ import crypto from "crypto";
 import AsyncLock from 'async-lock';
 import { cache } from '../cache.js';
 
+import robotsParser from "robots-txt-parser";
+
 const lock = new AsyncLock();
 
 const router = Router();
@@ -493,7 +495,8 @@ router.get("/robots/file/:host", async (req, res) => {
 });
 
 router.get("/robots/check/:host", async (req, res) => {
-  let robotsTxtBuffer = await getRobots(req.params.host, config.defaultNamespace || req.query.namespace);
+  const host = req.params.host;
+  let robotsTxtBuffer = await getRobots(host, config.defaultNamespace || req.query.namespace);
   if(!robotsTxtBuffer){
     res.status(404).send({
       ok: false,
@@ -502,8 +505,38 @@ router.get("/robots/check/:host", async (req, res) => {
     });
     return;
   }
+
   // parse robots.txt
-  
+  const parser = robotsParser({
+    allowOnNeutral: true,
+    userAgent: req.query.ua || req.get("User-Agent"),
+  });
+  const robotsString =  robotsTxtBuffer.toString();
+  parser.parseRobots("http://" + host,robotsString);
+  parser.parseRobots("https://" + host,robotsString);
+
+  const output = {
+      delay: await parser.getCrawlDelay(),
+      sitemaps: await parser.getSitemaps()
+  };
+
+  if(req.query.url){
+    const normalURL = new URL(req.query.url, "http://" + host);
+    if(normalURL.host != host){
+      res.status(400).send({
+        ok: false,
+        error: "URL is not on host supplied as parameter.",
+        code: "url_not_on_host"
+      });
+      return;
+    }
+    output["allowed"] = await parser.canCrawl(url.toString());
+  }
+
+  res.send({
+    ok: true,
+    data: output
+  });
 });
 
 router.post("/artifacts/bulkcreate", async (req, res) => {
