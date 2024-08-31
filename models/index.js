@@ -104,6 +104,13 @@ async function resyncCounts(variant, namespace = config.defaultNamespace){
     }));
 }
 
+async function resyncKnown(namespace = config.defaultNamespace){
+    let keys = await cache.keys();
+    for(let key of keys){
+        await resyncCounts(key, namespace);
+    }
+}
+
 // TODO: resync all counts func
 
-export {sequelize, init, resyncCounts};
+export {sequelize, init, resyncCounts, resyncKnown};

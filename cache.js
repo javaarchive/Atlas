@@ -30,6 +30,14 @@ class TaskCache {
     async dec(key){
         await db.math(key, MathOps.Subtract, 1);
     }
+
+    async toJSON(){
+        return (await this.db.all());
+    }
+
+    async keys(){
+        return Object.keys(await this.db.all());
+    }
 }
 
 export const cache = new TaskCache(path.join(config.dataPath, "task_cache.json"));

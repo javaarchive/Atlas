@@ -19,3 +19,6 @@ npm install # first time only
 npm start
 ```
 Eventually I'll make a dockerfile that you can just run but not yet.
+
+# warning
+Namespaces are kinda broken rn because I didn't segment the cache by namespace. just run another instance for now.

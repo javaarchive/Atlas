@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {resyncCounts, sequelize} from '../models/index.js';
+import {resyncCounts, resyncKnown, sequelize} from '../models/index.js';
 import {Tasks, Clients, Artifacts} from "../models/index.js";
 import {Sequelize, DataTypes, Op} from 'sequelize';
 import { config } from '../config.js';
@@ -228,6 +228,20 @@ router.get('/tasks/preview', async (req, res) => {
     });
 });
 
+router.get('/tasks/cache_count/:variant', async (req, res) => {
+  res.send({
+    ok: true,
+    data: (await cache.get(req.params.variant))
+  });
+});
+
+router.get('/tasks/cache_count', async (req, res) => {
+  res.send({
+    ok: true,
+    data: (await cache.toJSON())
+  });
+});
+
 router.get('/tasks/preview', async (req, res) => {
   res.send((await Tasks.findAll({
     limit: 10,
@@ -365,6 +379,14 @@ router.post("/tasks/resync", async (req, res) => {
   res.json({
     ok: true,
     message: "resynced tasks for given variant"
+  });
+});
+
+router.post("/tasks/resync_known", async (req, res) => {
+  await resyncKnown(config.defaultNamespace || req.body.namespace);
+  res.json({
+    ok: true,
+    message: "resynced tasks for all known variants"
   });
 });
 
