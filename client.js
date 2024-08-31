@@ -160,24 +160,34 @@ export class Client {
             method: "GET",
             headers: {
                 ...defaultFetchOptions.headers,
-                "Content-Type": "application/json",
             }
         });
         await this.checkResp(resp);
-        return (await resp.json());
+        return (await resp.json())["data"];
     }
 
-    async getServerCache(id){
+    async getServerCache(){
         let resp = await fetch(`${this.baseURL}/api/cache_count`, {
             ...defaultFetchOptions,
             method: "GET",
             headers: {
                 ...defaultFetchOptions.headers,
-                "Content-Type": "application/json",
             }
         });
         await this.checkResp(resp);
-        return (await resp.json());
+        return (await resp.json())["data"];
+    }
+
+    async getServerCacheCountForVariant(variant){
+        let resp = await fetch(`${this.baseURL}/api/cache_count/{variant}`, {
+            ...defaultFetchOptions,
+            method: "GET",
+            headers: {
+                ...defaultFetchOptions.headers,
+            }
+        });
+        await this.checkResp(resp);
+        return (await resp.json())["data"];
     }
 
     async tryTask(task){
