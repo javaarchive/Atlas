@@ -111,6 +111,4 @@ async function resyncKnown(namespace = config.defaultNamespace){
     }
 }
 
-// TODO: resync all counts func
-
 export {sequelize, init, resyncCounts, resyncKnown};

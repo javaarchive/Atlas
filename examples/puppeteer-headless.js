@@ -7,6 +7,10 @@ class PuppeteerHeadless extends Client {
     constructor(url, clientID, namespace = "default", variant = "default", concurrency = 1){
         super(url, clientID, namespace, variant, concurrency);
     }
+
+    completeTask(task){
+        console.log("TODO: Completed task", task);
+    }
 }
 
 // todo if __name__ == "__main__" but for js

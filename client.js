@@ -47,6 +47,7 @@ export class Client {
         this.running = 0;
         this.variant = variant;
         this.logging = false;
+        this.taskCountCache = 0;
     }
 
     async sync(){
@@ -91,7 +92,7 @@ export class Client {
     onMessage(event){
         // hopefully a string
         const message = JSON.parse(event.data);
-        console.log("Message", message);
+        if(this.logging) console.log("Message", message);
         if(message.event.type === "task_suggested"){
             this.tryTask(message.event.task).then(success => {
                 if(success) {
@@ -100,6 +101,14 @@ export class Client {
             })
         }else if(message.event.type === "heartbeat"){
             this.tick();
+        }else if(message.event.type === "sync_cache_count"){
+            if(message.event.cache[this.variant]){
+                this.taskCountCache = message.event.cache[this.variant];
+            }
+        }else if(message.event.type === "sync_cache_count_sub"){
+            if(message.event.variant == this.variant){
+                this.taskCountCache = message.event.value;
+            }
         }
     }
 
@@ -180,7 +189,7 @@ export class Client {
     }
 
     async getServerCacheCountForVariant(variant){
-        let resp = await fetch(`${this.baseURL}/api/cache_count/{variant}`, {
+        let resp = await fetch(`${this.baseURL}/api/cache_count/${variant}`, {
             ...defaultFetchOptions,
             method: "GET",
             headers: {
@@ -189,6 +198,11 @@ export class Client {
         });
         await this.checkResp(resp);
         return (await resp.json())["data"];
+    }
+
+    async syncServerCacheCount(){
+        let count = await this.getServerCacheCountForVariant(this.variant);
+        this.taskCountCache = count;
     }
 
     async tryTask(task){
@@ -218,8 +232,8 @@ export class Client {
     }
 
     async idle(){
-        let count = await this.getServerCacheCountForVariant(this.variant);
-        if(count > 0){
+        await this.syncServerCacheCount();
+        if(this.taskCountCache > 0){
             let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {
                 ...defaultFetchOptions,
                 method: "POST",

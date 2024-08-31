@@ -1,3 +1,4 @@
+import EventEmitter from "events";
 import config from "./config.js";
 import { Jsoning, MathOps } from 'jsoning';
 import path from "path";
@@ -5,8 +6,9 @@ import path from "path";
 // thanks to https://www.npmjs.com/package/jsoning for the great storage library
 
 // caches the counts of tasks so we know without reaching postgres
-class TaskCache {
+class TaskCache extends EventEmitter{
     constructor(data_filepath){
+        super();
         this.db = new Jsoning(data_filepath);
     }
 
@@ -21,14 +23,17 @@ class TaskCache {
     async sync(key, value){
         // for when values are desynced
         await this.db.set(key, value);
+        this.emit("change", key);
     }
 
     async inc(key){
         await db.math(key, MathOps.Add, 1);
+        this.emit("change", key);
     }
 
     async dec(key){
         await db.math(key, MathOps.Subtract, 1);
+        this.emit("change", key);
     }
 
     async toJSON(){

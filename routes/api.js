@@ -582,11 +582,17 @@ router.get("/events/:id", async (req, res) => {
 
   emitter.on("global", handleEvent);
   emitter.on(`event:${clientID}`, handleEvent);
+  if(client.variant){
+    emitter.on(`variant:${client.variant}`, handleEvent);
+  }
 
   req.on("close", () => {
     console.log("Client disconnected");
     emitter.removeListener(`event:${clientID}`, handleEvent);
     emitter.removeListener("global", handleEvent);
+    if(client.variant){
+      emitter.removeListener(`variant:${client.variant}`, handleEvent);
+    }
   });
 })
 
@@ -598,5 +604,15 @@ export let heartbeater = setInterval(() => {
     }
   });
 }, 1000 * 10);
+
+cache.on("change", async (key) => {
+  emitter.emit("variant:" + key, {
+    event: {
+      type: "sync_cache_count_sub",
+      variant: key,
+      value: await cache.get(key)
+    }
+  });
+});
 
 export default router;
