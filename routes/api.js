@@ -462,6 +462,50 @@ router.post("/artifacts/upload", async (req, res) => {
   });
 });
 
+async function getRobots(host, namespace = config.defaultNamespace){
+  let artifact = await Artifacts.findOne({
+    where: {
+      name: host,
+      namespace: namespace,
+      type: "robots"
+    }
+  });
+
+  if(!artifact){
+    return null;
+  }
+
+  const contents = path.join(config.dataPath, "artifacts", artifact.path);
+  return (await fs.promises.readFile(contents));
+}
+
+router.get("/robots/file/:host", async (req, res) => {
+  let robotsTxtBuffer = await getRobots(req.params.host, config.defaultNamespace || req.query.namespace);
+  if(!robotsTxtBuffer){
+    res.status(404).send({
+      ok: false,
+      error: "No robots.txt found for host given.",
+      code: "no_robots_txt"
+    });
+    return;
+  }
+  res.send(robotsTxtBuffer.toString());
+});
+
+router.get("/robots/check/:host", async (req, res) => {
+  let robotsTxtBuffer = await getRobots(req.params.host, config.defaultNamespace || req.query.namespace);
+  if(!robotsTxtBuffer){
+    res.status(404).send({
+      ok: false,
+      error: "No robots.txt found for host given.",
+      code: "no_robots_txt"
+    });
+    return;
+  }
+  // parse robots.txt
+  
+});
+
 router.post("/artifacts/bulkcreate", async (req, res) => {
     if(req.body && req.body.length){
         // TODO: 
@@ -556,8 +600,6 @@ router.get("/events/:id", async (req, res) => {
   client.lastHeartbeat = new Date();
   client.online = true;
   await client.save();
-
-  
 
   function handleEvent(event){
     res.write("data: " + JSON.stringify({
