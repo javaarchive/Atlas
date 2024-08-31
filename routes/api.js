@@ -10,6 +10,7 @@ import { EventEmitter } from 'events';
 import crypto from "crypto";
 
 import AsyncLock from 'async-lock';
+import { cache } from '../cache.js';
 
 const lock = new AsyncLock();
 
@@ -181,6 +182,7 @@ router.post("/tasks/create", async (req, res) => {
       key: req.body.key,
       data: req.body.data
     });
+    await cache.inc(task.variant);
     return task;
   });
   if(!task){
@@ -291,7 +293,8 @@ router.post("/tasks/acquire", async (req, res) => {
             task: task.toJSON()
           }
         });
-        await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {
+        await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {a
+          await cache.dec(task.variant);
           const client = await Clients.findByPk(task.completerID);
           await client.save();
         });
