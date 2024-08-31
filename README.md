@@ -8,7 +8,7 @@ Notes: the database structures used are only compatible with PostgreSQL. Thus fo
 Please change the postgres password.
 
 ## Setup
-Currentl development setup.
+Current development setup.
 ```bash
 # for postgres
 scripts/database.sh

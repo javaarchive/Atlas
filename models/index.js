@@ -2,10 +2,10 @@ import {Sequelize, DataTypes} from 'sequelize';
 import crypto from "crypto";
 import normalizeUrl from 'normalize-url';
 import config from '../config.js';
-import { start } from 'repl';
 
 const sequelize = new Sequelize(config.databaseURL);
 
+import { cache } from './cache.js';
 
 export const Tasks = sequelize.define('tasks', {
     id: {
@@ -95,4 +95,15 @@ async function init(hard = false){
     });
 }
 
-export {sequelize, init};
+async function resyncCounts(variant, namespace = config.defaultNamespace){
+    await cache.sync(variant, await Tasks.count({
+        where: {
+            namespace: namespace,
+            variant: variant
+        }
+    }));
+}
+
+// TODO: resync all counts func
+
+export {sequelize, init, resyncCounts};

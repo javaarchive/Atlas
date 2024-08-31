@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {sequelize} from '../models/index.js';
+import {resyncCounts, sequelize} from '../models/index.js';
 import {Tasks, Clients, Artifacts} from "../models/index.js";
 import {Sequelize, DataTypes, Op} from 'sequelize';
 import { config } from '../config.js';
@@ -354,6 +354,23 @@ router.post("/tasks/complete", async (req, res) => {
       code: "not_acquired"
     })
   }
+});
+
+
+router.post("/tasks/resync", async (req, res) => {
+  await resyncCounts(req.body.variant, config.defaultNamespace || req.body.namespace);
+  res.json({
+    ok: true,
+    message: "resynced tasks for given variant"
+  });
+});
+
+router.post("/tasks/resync/:variant", async (req, res) => {
+  await resyncCounts(req.params.variant, config.defaultNamespace || req.query.namespace);
+  res.json({
+    ok: true,
+    message: "resynced tasks for given variant"
+  });
 });
 
 // TODO: expire tasks that take too long
