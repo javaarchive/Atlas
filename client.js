@@ -167,6 +167,19 @@ export class Client {
         return (await resp.json());
     }
 
+    async getServerCache(id){
+        let resp = await fetch(`${this.baseURL}/api/cache_count`, {
+            ...defaultFetchOptions,
+            method: "GET",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            }
+        });
+        await this.checkResp(resp);
+        return (await resp.json());
+    }
+
     async tryTask(task){
         if(this.running < this.concurrency){
             await this.completeTaskWrapper(task);
