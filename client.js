@@ -46,6 +46,7 @@ export class Client {
         this.concurrency = concurrency;
         this.running = 0;
         this.variant = variant;
+        this.logging = false;
     }
 
     async sync(){
@@ -201,29 +202,48 @@ export class Client {
 
     async completeTaskWrapper(task){
         this.running ++;
+        if(this.logging) {
+            console.log("Start task", task);
+        }
         await this.completeTask(task);
+        if(this.logging) {
+            console.log("Completed task", task);
+        }
         this.running --;
     }
     
 
     async completeTask(task){
-        // not implemented
+        // not implemented, implement by subclass
     }
 
     async idle(){
-        let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {
-            ...defaultFetchOptions,
-            method: "POST",
-            headers: {
-                ...defaultFetchOptions.headers,
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                clientID: this.clientID,
-                namespace: this.namespace,
-                variant: this.variant,
-                repeat: this.concurrency - this.running
-            })
-        });
+        let count = await this.getServerCacheCountForVariant(this.variant);
+        if(count > 0){
+            let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {
+                ...defaultFetchOptions,
+                method: "POST",
+                headers: {
+                    ...defaultFetchOptions.headers,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    clientID: this.clientID,
+                    namespace: this.namespace,
+                    variant: this.variant,
+                    repeat: this.concurrency - this.running
+                })
+            });
+
+            try{
+                await this.checkResp(resp);
+                let data = (await resp.json()).data;
+                for(let task of data.data){
+                    this.tryTask(task);
+                }
+            }catch(ex){
+
+            }
+        }
     }
 }
