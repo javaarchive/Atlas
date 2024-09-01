@@ -273,13 +273,18 @@ router.get('/tasks/by_variant', async (req, res) => {
 
 router.post("/tasks/acquire", async (req, res) => {
   // filter by acceptable tasks
-  const matchingTasks = await Tasks.findAll({
+  const matchingTasks = req.query.id ? (await Tasks.findAll({
+    where: {
+      id: req.query.id
+    },
+    limit: 1
+  })) : (await Tasks.findAll({
     limit: 100,
     where: {
       variant: req.body.variant,
       namespace: req.body.namespace || config.defaultNamespace
     }
-  });
+  }));
   if(matchingTasks.length === 0){
     res.status(404).send({
       ok: false,
@@ -290,9 +295,10 @@ router.post("/tasks/acquire", async (req, res) => {
 
   for(let task of matchingTasks){
     const key = getTaskKey(task.namespace, task.id);
-    let result = lock.acquire(key, async () => {
+    let result = await lock.acquire(key, async () => {
       // refetch to make sure it's still avali
-      const task = await Tasks.findByPk(task.id);
+      // variable shadowing here is fine I hope?
+      task = await Tasks.findByPk(task.id);
       if(task.completerID === req.body.clientID || !task.completerID){
         task.completerID = req.body.clientID;
         task.startTime = new Date();
@@ -309,7 +315,7 @@ router.post("/tasks/acquire", async (req, res) => {
             task: task.toJSON()
           }
         });
-        await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {a
+        await lock.acquire(getClientKey(task.namespace, task.completerID), async () => {
           await cache.dec(task.variant);
           const client = await Clients.findByPk(task.completerID);
           await client.save();
@@ -358,7 +364,7 @@ router.post("/tasks/complete", async (req, res) => {
       event: {
         type: "task_completed",
         id: task.id,
-        flags: task.flags,
+        variant: task.variant,
         clientID: task.completerID
       }
     });

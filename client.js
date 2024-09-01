@@ -252,13 +252,61 @@ export class Client {
     }
 
     async syncServerCacheCount(){
-        let count = await this.getServerCacheCountForVariant(this.variant);
+        const count = await this.getServerCacheCountForVariant(this.variant);
         this.taskCountCache = count;
+    }
+
+    async tryAcquire(id){
+        const resp = await fetch(`${this.baseURL}/api/tasks/acquire?id=${id}`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                clientID: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant
+            })
+        });
+        const json = (await resp.json());
+        // console.log("acquire resp",json);
+        return [json["ok"], json["data"]];
+    }
+
+    async submitTaskCompletion(task){
+        const resp = await fetch(`${this.baseURL}/api/tasks/complete`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id: task.id,
+                clientID: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant
+            })
+        });
+        await this.checkResp(resp);
+        return (await resp.json())["ok"];
     }
 
     async tryTask(task){
         if(this.running < this.concurrency){
-            await this.completeTaskWrapper(task);
+            if((await this.tryAcquire(task.id))[0]){
+                try{
+                    await this.completeTaskWrapper(task);
+                }catch(ex){
+
+                }
+                await this.submitTaskCompletion(task);
+            }else{
+                if(this.logging) console.log("Failed to acquire task", task.id);
+                return false;
+            }
             return true;
         }else{
             return false;
@@ -305,7 +353,7 @@ export class Client {
                 this.tryTask(task);
             }
         }catch(ex){
-            
+
         }
     }
 

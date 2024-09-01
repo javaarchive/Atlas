@@ -15,4 +15,5 @@ class PuppeteerHeadless extends Client {
 
 // todo if __name__ == "__main__" but for js
 const client = new PuppeteerHeadless("http://localhost:3000", "test", "default", "pptr-headless", 4);
+client.logging = true;
 client.connect();
