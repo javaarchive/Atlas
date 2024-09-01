@@ -131,7 +131,7 @@ export class Client {
     }
 
     async uploadNewTask(task){
-        let resp = await fetch(`${this.baseURL}/api/tasks/acquire`, {
+        let resp = await fetch(`${this.baseURL}/api/tasks/create`, {
             ...defaultFetchOptions,
             method: "POST",
             headers: {

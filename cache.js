@@ -27,12 +27,12 @@ class TaskCache extends EventEmitter{
     }
 
     async inc(key){
-        await db.math(key, MathOps.Add, 1);
+        await this.db.math(key, MathOps.Add, 1);
         this.emit("change", key);
     }
 
     async dec(key){
-        await db.math(key, MathOps.Subtract, 1);
+        await this.db.math(key, MathOps.Subtract, 1);
         this.emit("change", key);
     }
 

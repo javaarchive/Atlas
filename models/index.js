@@ -5,12 +5,15 @@ import config from '../config.js';
 
 const sequelize = new Sequelize(config.databaseURL);
 
-import { cache } from './cache.js';
+import { cache } from '../cache.js';
 
 export const Tasks = sequelize.define('tasks', {
     id: {
         type: DataTypes.INTEGER,
-        primaryKey: true
+        primaryKey: true,
+        autoIncrement: true,
+        unique: true,
+        allowNull: false
     },
     key: DataTypes.STRING, // should be unique
     data: DataTypes.JSON,
@@ -27,7 +30,7 @@ export const Tasks = sequelize.define('tasks', {
         type: DataTypes.INTEGER,
         allowNull: true
     }
-});
+}, {initialAutoIncrement: 1});
 
 export const Artifacts = sequelize.define('artifacts', {
     id: {

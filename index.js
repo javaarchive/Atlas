@@ -49,3 +49,6 @@ initEverything().then(() => {
 app.listen(3000, () => {
     console.log('Example app listening on port 3000!');
 });
+
+process.on("uncaughtException", console.warn);
+process.on("unhandledRejection", console.warn);
