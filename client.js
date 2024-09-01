@@ -282,33 +282,37 @@ export class Client {
         // not implemented, implement by subclass
     }
 
+    async fillTasks(){
+        let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {
+            ...defaultFetchOptions,
+            method: "POST",
+            headers: {
+                ...defaultFetchOptions.headers,
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                clientID: this.clientID,
+                namespace: this.namespace,
+                variant: this.variant,
+                repeat: this.concurrency - this.running
+            })
+        });
+
+        try{
+            await this.checkResp(resp);
+            let data = (await resp.json()).data;
+            for(let task of data.data){
+                this.tryTask(task);
+            }
+        }catch(ex){
+            
+        }
+    }
+
     async idle(){
         await this.syncServerCacheCount();
         if(this.taskCountCache > 0){
-            let resp = await fetch(`${this.baseURL}/api/tasks/pull`, {
-                ...defaultFetchOptions,
-                method: "POST",
-                headers: {
-                    ...defaultFetchOptions.headers,
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    clientID: this.clientID,
-                    namespace: this.namespace,
-                    variant: this.variant,
-                    repeat: this.concurrency - this.running
-                })
-            });
-
-            try{
-                await this.checkResp(resp);
-                let data = (await resp.json()).data;
-                for(let task of data.data){
-                    this.tryTask(task);
-                }
-            }catch(ex){
-
-            }
+            await this.fillTasks();
         }
     }
 }

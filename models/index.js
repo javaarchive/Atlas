@@ -9,11 +9,14 @@ import { cache } from '../cache.js';
 
 export const Tasks = sequelize.define('tasks', {
     id: {
-        type: DataTypes.INTEGER,
+        // autoinc doesn't work with postgres due to bug???
+        // type: DataTypes.INTEGER,
+        type: DataTypes.UUID, //
         primaryKey: true,
-        autoIncrement: true,
+        // autoIncrement: true,
         unique: true,
-        allowNull: false
+        allowNull: false,
+        defaultValue: DataTypes.UUIDV4,
     },
     key: DataTypes.STRING, // should be unique
     data: DataTypes.JSON,
@@ -30,7 +33,7 @@ export const Tasks = sequelize.define('tasks', {
         type: DataTypes.INTEGER,
         allowNull: true
     }
-}, {initialAutoIncrement: 1});
+});
 
 export const Artifacts = sequelize.define('artifacts', {
     id: {
